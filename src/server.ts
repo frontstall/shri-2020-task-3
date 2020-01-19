@@ -23,7 +23,7 @@ let conf: ExampleConfiguration | undefined = undefined;
 conn.onInitialize((params: InitializeParams) => {
     return {
         capabilities: {
-            textDocumentSync: 'always'
+            textDocumentSync: docs.syncKind
         }
     };
 });
@@ -37,7 +37,7 @@ function GetSeverity(key: RuleKeys): DiagnosticSeverity | undefined {
 
     switch (severity) {
         case Severity.Error:
-            return DiagnosticSeverity.Information;
+            return DiagnosticSeverity.Error;
         case Severity.Warning:
             return DiagnosticSeverity.Warning;
         case Severity.Information:
@@ -63,14 +63,22 @@ function GetMessage(key: RuleKeys): string {
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     const source = basename(textDocument.uri);
-    const json = textDocument.uri;
+    const json = textDocument.getText();
+
+    const isBlock = (obj: jsonToAst.AstObject) => obj.children
+      .some(p => p.key.value === 'elem'
+        || p.key.value === 'mix'
+        || p.key.value === 'elem'
+        || p.key.value === 'content'
+        || p.key.value === 'mods'
+      )
 
     const validateObject = (
         obj: jsonToAst.AstObject
     ): LinterProblem<RuleKeys>[] =>
-        obj.children.some(p => p.key.value === 'block')
-            ? []
-            : [{ key: RuleKeys.BlockNameIsRequired, loc: obj.loc }];
+        isBlock(obj) && !obj.children.some(p => p.key.value === 'block')
+            ? [{ key: RuleKeys.BlockNameIsRequired, loc: obj.loc }]
+            : [];
 
     const validateProperty = (
         property: jsonToAst.AstProperty
@@ -79,7 +87,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
             ? [
                   {
                       key: RuleKeys.UppercaseNamesIsForbidden,
-                      loc: property.key.loc
+                      loc: property.loc
                   }
               ]
             : [];

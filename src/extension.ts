@@ -42,16 +42,15 @@ const createLanguageClient = (context: vscode.ExtensionContext): LanguageClient 
         synchronize: { configurationSection: 'example' }
     };
 
-    client = new LanguageClient('languageServerExample', 'Language Server Example', serverOptions, clientOptions);
-
-    return client;
+    
+    return new LanguageClient('example', 'Example extension', serverOptions, clientOptions);
 };
 
 const getPreviewKey = (doc: vscode.TextDocument): string => doc.uri.path;
 
 const getMediaPath = (context: vscode.ExtensionContext) => vscode.Uri
     .file(context.extensionPath)
-    .with({ scheme: "resource"})
+    .with({ scheme: "vscode-resource"})
     .toString() + '/';
 
 const initPreviewPanel = (document: vscode.TextDocument) => {
@@ -88,8 +87,8 @@ const updateContent = (doc: vscode.TextDocument, context: vscode.ExtensionContex
             const html = template.apply(data);
 
 
-            panel.webview.html = previewHtml 
-                .replace(/{{\s+(\w+)\s+}}/g, (str, key) => {
+            panel.webview.html = previewHtml
+                .replace(/{{\s*(\w+)\s*}}/g, (str, key) => {
                     switch (key) {
                         case 'content':
                             return html;
@@ -112,7 +111,9 @@ const openPreview = (context: vscode.ExtensionContext) => {
 
         const panel = PANELS[key];
 
-        if (panel) panel.reveal();
+        if (panel) {
+            panel.reveal();
+        }
         else {
             const panel = initPreviewPanel(document);
             updateContent(document, context);
